@@ -6,7 +6,7 @@ OBJ_DIR = build
 SRC = $(wildcard $(SRC_DIR)/*.cpp)
 OBJ = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC))
 
-TARGET = main
+TARGET = solver
 
 all: $(TARGET)
 

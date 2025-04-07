@@ -1,0 +1,31 @@
+Serial triangular solve time: 0.860085 seconds
+Serial triangular solve time: 1.0265 seconds
+Serial triangular solve time: 1.24214 seconds
+Serial triangular solve time: 0.806863 second
+Serial triangular solve time: 0.750841 seconds
+
+
+mpirun -np 4 ./solver ./offshore_L_csr.txt
+0.28761
+0.26671
+0.270635
+0.265404
+
+mpirun -np 2 ./solver ./offshore_L_csr.txt
+0.200717
+0.201549
+0.200597
+0.202539
+0.197686
+
+mpirun -np 8 ./solver ./offshore_L_csr.txt
+0.341632
+0.340257
+0.341139
+0.339036
+0.346061
+
+
+0.136394
+0.134547
+0.134156
