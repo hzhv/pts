@@ -35,6 +35,7 @@ int main(int argc, char* argv[]) {
 
     if (x_serial.size() != x_parallel.size()) {
         std::cerr << "Error: Solution vectors have different sizes.\n";
+        std::cerr << "Serial size: " << x_serial.size() << ", Parallel size: " << x_parallel.size() << std::endl;
         return 1;
     }
 

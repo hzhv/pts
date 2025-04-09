@@ -9,16 +9,22 @@
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <csr_filename>\n";
+        std::cerr << "Usage: " << argv[0] << " <triplet_filename>\n";
         return -1;
     }
+
     MPI_Init(&argc, &argv);
+    
     int rank, numProcs;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
 
-    // 1) Rank 0 load global L in CSR format
     CSRMatrix A_csr;
+    int row_ptr_size = 0;
+    int col_id_size = 0;
+    int val_size = 0;
+    std::vector<std::vector<int>> levels;
+
     if (rank == 0) {
         std::string CSR_file = argv[1];
         std::ifstream infile(CSR_file);
@@ -28,171 +34,85 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "Loading A in CSR format..." << std::endl;
         A_csr = loadCSR(CSR_file);
-        std::cout << "CSR Matrix loaded: n = " << A_csr.n 
-             << ", nnz = " << A_csr.val.size() << std::endl;
+        std::cout << "CSR Matrix loaded:" << std::endl;
+        std::cout << "Number of rows: " << A_csr.n << std::endl;
+        std::cout << "Nonzeros: " << A_csr.val.size() << std::endl;
+
+        row_ptr_size = A_csr.row_ptr.size();
+        col_id_size = A_csr.col_id.size();
+        val_size = A_csr.val.size();
     }
 
-    // 2) bcast # of rows, row_ptr
+    // Bcast A_csr
     MPI_Bcast(&A_csr.n, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    int row_ptr_size = 0;
-    if (rank == 0) {
-        row_ptr_size = A_csr.row_ptr.size();
-    }
     MPI_Bcast(&row_ptr_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&col_id_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&val_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
     if (rank != 0) {
         A_csr.row_ptr.resize(row_ptr_size);
+        A_csr.col_id.resize(col_id_size);
+        A_csr.val.resize(val_size);
     }
+
     MPI_Bcast(A_csr.row_ptr.data(), row_ptr_size, MPI_INT, 0, MPI_COMM_WORLD);
-    // Note：other data col_id, val did not bcast here
-
-    // 3) Patition: root computes the partition info, then distributes to all processes
-    LocalCSR myPart;
-    // 这里采用 MPI_Scatterv 分发全局 CSR 数据（仅使用 A_csr.row_ptr, col_id, val 在 root 上）
-    distributeBlocks(A_csr, myPart, rank, numProcs);
-
-    // 4) init b , and globalX
-    std::vector<double> b;
-    int nGlobal;
-    if (rank == 0) {
-        nGlobal = A_csr.n;
-        b.resize(nGlobal, 1.0);
-    }
-    MPI_Bcast(&nGlobal, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    if (rank != 0) b.resize(nGlobal);
-    MPI_Bcast(b.data(), nGlobal, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    std::vector<double> globalX(nGlobal, 0.0);
-
-    // 5) Level scheduling：only compute on rank 0, then bcast
-    std::vector<std::vector<int>> levels;
-    if (rank == 0) {
-        levels = levelScheduling(A_csr);
-        std::cout << "Level scheduling computed: " << levels.size() << " levels." << std::endl;
-    }
-    broadcastLevels(levels, rank);
-
-    std::cout << "Rank " << rank << " entering parallelTriangularSolve_block." << std::endl;
-    MPI_Barrier(MPI_COMM_WORLD);
-    std::cout << "Rank " << rank << " leaving parallelTriangularSolve_block." << std::endl;
-    double tstart = MPI_Wtime();
-    parallelTriangularSolve_block(myPart, b, globalX, levels, rank, numProcs);
-    double tend = MPI_Wtime();
+    MPI_Bcast(A_csr.col_id.data(), col_id_size, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(A_csr.val.data(), val_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     if (rank == 0) {
-        std::cout << "Parallel solve time: " << (tend - tstart) << " s" << std::endl;
+        std::cout << "Broadcast of CSRMatrix completed. Matrix n = " << A_csr.n << std::endl;
         std::cout << std::endl;
     }
+
+    std::vector<double> b(A_csr.n, 0.0);
+    std::vector<double> x(A_csr.n, 0.0);
+    // Bcast x, b
+    if (rank == 0) {
+        std::fill(b.begin(), b.end(), 1.0);  // b 全部初始化为 1
+        std::fill(x.begin(), x.end(), 0.0);    // x 初始化为 0
+    }
+    MPI_Bcast(b.data(), A_csr.n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(x.data(), A_csr.n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    try {   
+        levels = levelScheduling(A_csr); // Not finished, need to be bcast in the future
+        if (rank == 0)
+            std::cout << "There are " << levels.size() << " levels in total." << std::endl;
+
+        std::cout << "Rank " << rank << " entering barrier before parallelTriangularSolve." << std::endl;
+        MPI_Barrier(MPI_COMM_WORLD);
+        std::cout << "Rank " << rank << " leaving barrier before parallelTriangularSolve." << std::endl;
+        std::cout << std::endl;
+
+        double start_parallel = MPI_Wtime();
+        parallelTriangularSolve(A_csr, b, x, levels, rank, numProcs);
+        double end_parallel = MPI_Wtime();
+        
+        if (rank == 0) {
+            std::cout << "Parallel solve time: " << (end_parallel - start_parallel) << " sec" << std::endl;
+            std::cout << std::endl;
+
+            std::ofstream outfile("Parallel_solution.txt");
+            if (!outfile) {
+                std::cerr << "Error: cannot open file for writing solution.\n";
+                return -1;
+            }
+            for (int i = 0; i < A_csr.n; i++) {
+                outfile << x[i] << "\n";
+            }
+            outfile.close();
+            std::cout << "Solution x Saved.\n";
+        }
+    } 
+    catch (const std::exception& e) {
+        if (rank == 0)
+            std::cerr << "Error: " << e.what() << std::endl;
+        MPI_Abort(MPI_COMM_WORLD, -1);
+    }
+    
     MPI_Finalize();
     return 0;
 }
-
-
-// Level scheduling
-// int main(int argc, char* argv[]) {
-//     if (argc < 2) {
-//         std::cerr << "Usage: " << argv[0] << " <triplet_filename>\n";
-//         return -1;
-//     }
-
-//     MPI_Init(&argc, &argv);
-    
-//     int rank, numProcs;
-//     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-//     MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
-
-//     CSRMatrix A_csr;
-//     int row_ptr_size = 0;
-//     int col_id_size = 0;
-//     int val_size = 0;
-//     std::vector<std::vector<int>> levels;
-
-//     if (rank == 0) {
-//         std::string CSR_file = argv[1];
-//         std::ifstream infile(CSR_file);
-//         if (!infile) {
-//             std::cerr << "Cannot open file: " << CSR_file << std::endl;
-//             MPI_Abort(MPI_COMM_WORLD, -1);
-//         }
-//         std::cout << "Loading A in CSR format..." << std::endl;
-//         A_csr = loadCSR(CSR_file);
-//         std::cout << "CSR Matrix loaded:" << std::endl;
-//         std::cout << "Number of rows: " << A_csr.n << std::endl;
-//         std::cout << "Nonzeros: " << A_csr.val.size() << std::endl;
-
-//         row_ptr_size = A_csr.row_ptr.size();
-//         col_id_size = A_csr.col_id.size();
-//         val_size = A_csr.val.size();
-//     }
-
-//     // Bcast A_csr
-//     MPI_Bcast(&A_csr.n, 1, MPI_INT, 0, MPI_COMM_WORLD);
-//     MPI_Bcast(&row_ptr_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-//     MPI_Bcast(&col_id_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-//     MPI_Bcast(&val_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-//     if (rank != 0) {
-//         A_csr.row_ptr.resize(row_ptr_size);
-//         A_csr.col_id.resize(col_id_size);
-//         A_csr.val.resize(val_size);
-//     }
-
-//     MPI_Bcast(A_csr.row_ptr.data(), row_ptr_size, MPI_INT, 0, MPI_COMM_WORLD);
-//     MPI_Bcast(A_csr.col_id.data(), col_id_size, MPI_INT, 0, MPI_COMM_WORLD);
-//     MPI_Bcast(A_csr.val.data(), val_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-//     if (rank == 0) {
-//         std::cout << "Broadcast of CSRMatrix completed. Matrix n = " << A_csr.n << std::endl;
-//         std::cout << std::endl;
-//     }
-
-//     std::vector<double> b(A_csr.n, 0.0);
-//     std::vector<double> x(A_csr.n, 0.0);
-//     // Bcast x, b
-//     if (rank == 0) {
-//         std::fill(b.begin(), b.end(), 1.0);  // b 全部初始化为 1
-//         std::fill(x.begin(), x.end(), 0.0);    // x 初始化为 0
-//     }
-//     MPI_Bcast(b.data(), A_csr.n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-//     MPI_Bcast(x.data(), A_csr.n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-//     try {   
-//         levels = levelScheduling(A_csr); // Not finished, need to be bcast in the future
-//         if (rank == 0)
-//             std::cout << "There are " << levels.size() << " levels in total." << std::endl;
-
-//         std::cout << "Rank " << rank << " entering barrier before parallelTriangularSolve." << std::endl;
-//         MPI_Barrier(MPI_COMM_WORLD);
-//         std::cout << "Rank " << rank << " leaving barrier before parallelTriangularSolve." << std::endl;
-//         std::cout << std::endl;
-
-//         double start_parallel = MPI_Wtime();
-//         parallelTriangularSolve(A_csr, b, x, levels, rank, numProcs);
-//         double end_parallel = MPI_Wtime();
-        
-//         if (rank == 0) {
-//             std::cout << "Parallel solve time: " << (end_parallel - start_parallel) << " sec" << std::endl;
-//             std::cout << std::endl;
-
-//             std::ofstream outfile("Parallel_solution.txt");
-//             if (!outfile) {
-//                 std::cerr << "Error: cannot open file for writing solution.\n";
-//                 return -1;
-//             }
-//             for (int i = 0; i < A_csr.n; i++) {
-//                 outfile << x[i] << "\n";
-//             }
-//             outfile.close();
-//             std::cout << "Solution x Saved.\n";
-//         }
-//     } 
-//     catch (const std::exception& e) {
-//         if (rank == 0)
-//             std::cerr << "Error: " << e.what() << std::endl;
-//         MPI_Abort(MPI_COMM_WORLD, -1);
-//     }
-    
-//     MPI_Finalize();
-//     return 0;
-// }
 
 
 

@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <stdexcept>
-#include "./include/common.h"
+#include "../include/common.h"
 
 
 CSRMatrix loadCSR(std::string& filename) {
@@ -47,21 +47,23 @@ CSRMatrix loadCSR(std::string& filename) {
 }
 
 void serialTriangularSolve(const CSRMatrix &L, const std::vector<double>& b, std::vector<double>& x) {
-    for (int i = 0; i < L.n; i++) {
+    for (int row = 0; row < L.n; ++row) {
         double sum = 0.0;
-        double diag = 0.0;
-        for (int idx = L.row_ptr[i]; idx < L.row_ptr[i + 1]; idx++) {
+        // double diag = 0.0;
+        int diag_idx = L.row_ptr[row+1] - 1;
+        double diag = L.val[diag_idx];
+        for (int idx = L.row_ptr[row]; idx < L.row_ptr[row+1]; ++idx) { // traverse 1 row
             int col = L.col_id[idx];
-            if (col == i) {
-                diag = L.val[idx]; // 找到对角元
-            } else {
-                sum += L.val[idx] * x[col];
-            }
+            // if (col == row) {
+            //     diag = L.val[idx];
+            // } else {
+            // }
+            sum += L.val[idx] * x[col];
         }
-        if (diag == 0.0) {
-            throw std::runtime_error("Encountered zero diagonal element!");
-        }
-        x[i] = (b[i] - sum) / diag;
+        // if (diag == 0.0) {
+        //     throw std::runtime_error("Encountered zero diagonal element!");
+        // }
+        x[row] = (b[row] - sum) / diag;
     }
 }
 
