@@ -13,9 +13,6 @@ using namespace std;
 void parallelTriangularSolve(const CSRMatrix& L, const vector<double>& b, vector<double>& x, 
                                const vector<vector<int>>& levels, int rank, int numProcs) 
 {
-    // int n = L.n;
-    // x.assign(n, 0.0);
-
     for (size_t lev = 0; lev < levels.size(); ++lev) {
         for (int row : levels[lev]) {
             if ((row % numProcs) == rank) {
