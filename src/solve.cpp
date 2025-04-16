@@ -10,8 +10,9 @@
 
 using namespace std;
 
-void parallelTriangularSolve(const CSRMatrix& L, const vector<double>& b, vector<double>& x, 
-                               const vector<vector<int>>& levels, int rank, int numProcs) 
+void parallelTriangularSolve(
+    const CSRMatrix& L, const vector<double>& b, vector<double>& x, 
+    const vector<vector<int>>& levels, int rank, int numProcs) 
 {
     for (size_t lev = 0; lev < levels.size(); ++lev) {
         for (int row : levels[lev]) {
@@ -23,16 +24,6 @@ void parallelTriangularSolve(const CSRMatrix& L, const vector<double>& b, vector
                     int col = L.col_id[idx];
                     sum += L.val[idx] * x[col];
                 }
-                // double diag = 0.0;
-                // for (int idx = L.row_ptr[row]; idx < L.row_ptr[row+1]; idx++) {
-                //     if (L.col_id[idx] == row) {
-                //         diag = L.val[idx];
-                //         break;
-                //     }
-                // }
-                // if (diag == 0.0) {
-                //     throw runtime_error("Zero diagonal encountered at row " + to_string(row));
-                // }
                 x[row] = (b[row] - sum) / diag;
             }
             MPI_Bcast(&x[row], 1, MPI_DOUBLE, row % numProcs, MPI_COMM_WORLD);

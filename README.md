@@ -1,28 +1,21 @@
-**04/08/2025**  
+**04/10/2025** 
 **[offshore.mat](https://sparse.tamu.edu/Um/offshore)** 
-
 | Rows    | Cols    | Nonzeros  | Density      |
 |---------|---------|-----------|--------------|
 | 259,789 | 259,789 | 4,242,673 | 0.0159515%   |
 - **Symmetric**:	Yes 
 - **Levels in total**: 13,486  
 - **Each level contains** 19.26 rows on average.
+- ![Offshore Matrix Visualization](./images/offshore_L_csr200.png)  
 
-- ![Offshore Matrix Visualization](./images/offshore_L_csr200.png)
-
-**Result in Seconds**
-| -np 1    | -np 2    | -np 4    | -np 8    | Serial    |
-|----------|----------|----------|----------|-----------|
-| 0.107306 | 0.16881  | 0.236329 | 0.306209 | 0.0788363 |
-| 0.105922 | 0.170062 | 0.23471  | 0.304186 | 0.0788557 |
-| 0.10419  | 0.169313 | 0.235276 | 0.303561 | 0.563259  |
-| 0.106042 | 0.169728 | 0.232909 | 0.306211 | 0.0814193 |
-| 0.106131 | 0.172671 | 0.235012 | 0.305638 | 0.0830694 |
-| 0.105438 | 0.167453 | 0.242096 | 0.30387  | 0.0834274 |
-| 0.104456 | 0.171154 | 0.236112 | 0.307971 | 0.0830402 |
+**Solve 100 times each:**
+|Matlab  | -np 1    | -np 2     | -np 4    | -np 8    | Serial    |
+|--------|----------|-----------|----------|----------|-----------|
+|0.116147| 0.0635186| 0.115715  | 0.16013  | 0.220695 | 0.0545086 |
+|0.122958| 
+|0.118623| 
 
 
-<br>
 
 **[L_FEM_3D_thermal2_csr.mat](https://sparse.tamu.edu/Botonakis/FEM_3D_thermal2)** 
 
@@ -35,7 +28,37 @@
 
 - ![L_FEM_3D_thermal2 Matrix Visualization](./images/L_FEM_3D_thermal2_csr.png)
 
+**Result in Seconds**
+| -np 1     | -np 2    | -np 4    | -np 8    | Serial    |
+|-----------|----------|----------|----------|-----------|
+| 0.0183861 | 0.0383943| 0.0668708| 0.0990982| 0.0183794 |
 
+
+**04/08/2025**  
+**[offshore.mat](https://sparse.tamu.edu/Um/offshore)** 
+
+**Result in Seconds**
+|Matlab    | -np 1    | -np 2    | -np 4    | -np 8    | Serial    |
+|----------|----------|----------|----------|----------|-----------|
+|0.116147  | 0.107306 | 0.16881  | 0.236329 | 0.306209 | 0.0788363 |
+|0.122958  | 0.105922 | 0.170062 | 0.23471  | 0.304186 | 0.0788557 |
+|0.118623  | 0.10419  | 0.169313 | 0.235276 | 0.303561 | 0.563259  |
+|          | 0.106042 | 0.169728 | 0.232909 | 0.306211 | 0.0814193 |
+|          | 0.106131 | 0.172671 | 0.235012 | 0.305638 | 0.0830694 |
+|          | 0.105438 | 0.167453 | 0.242096 | 0.30387  | 0.0834274 |
+|          | 0.104456 | 0.171154 | 0.236112 | 0.307971 | 0.0830402 |
+
+
+**[L_FEM_3D_thermal2_csr.mat](https://sparse.tamu.edu/Botonakis/FEM_3D_thermal2)** 
+
+| Rows    | Cols    | Nonzeros  | Density      |
+|---------|---------|-----------|--------------|
+| 147,900 | 147,900 | 3,489,300 | 0.0062863%   |
+- **Symmetric**:	No 
+- **Levels in total**:  4200 
+- **Each level contains** 35.21 rows on average.
+
+- ![L_FEM_3D_thermal2 Matrix Visualization](./images/L_FEM_3D_thermal2_csr.png)
 
 **Result in Seconds**
 | -np 1    | -np 2    | -np 4    | -np 8    | Serial    |
@@ -48,3 +71,7 @@
 
 
 **[Cage13.mat](https://sparse.tamu.edu/vanHeukelum/cage13)**
+
+
+0.268917 
+0.259517 sec

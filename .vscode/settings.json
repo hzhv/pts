@@ -55,6 +55,19 @@
         "typeinfo": "cpp",
         "fstream": "cpp",
         "sstream": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "csignal": "cpp",
+        "bitset": "cpp",
+        "codecvt": "cpp",
+        "complex": "cpp",
+        "condition_variable": "cpp",
+        "list": "cpp",
+        "set": "cpp",
+        "optional": "cpp",
+        "mutex": "cpp",
+        "shared_mutex": "cpp",
+        "cfenv": "cpp",
+        "__nullptr": "cpp",
+        "cassert": "cpp"
     }
 }
