@@ -29,7 +29,7 @@ void parallelTriangularSolve_p2p(
 
     for (size_t lev = 0; lev < levels.size(); ++lev) {
 
-        // Step A: Recv the 
+        // Step A: Recv
         {
             std::set<int> neededRemotes;
             for (int row : levels[lev]) {
@@ -44,16 +44,16 @@ void parallelTriangularSolve_p2p(
 
             for (int dep : neededRemotes) {
                 int sender_rank = dep % numProcs;
-                std::cout << "[Rank " << rank << "] ready to recv x[" << dep 
-                          << "] from Rank " << sender_rank << " (tag=" << dep << ")" 
-                          << std::endl;
+                // std::cout << "[Rank " << rank << "] ready to recv x[" << dep 
+                //           << "] from Rank " << sender_rank << " (tag=" << dep << ")" 
+                //           << std::endl;
 
                 MPI_Recv(&x[dep], 1, MPI_DOUBLE, sender_rank, dep, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 received[dep] = true;
 
-                std::cout << "[Rank " << rank << "] received x[" << dep << "]=" << x[dep]
-                          << " from Rank " << sender_rank << " (tag=" << dep << ")" 
-                          << std::endl;
+                // std::cout << "[Rank " << rank << "] received x[" << dep << "]=" << x[dep]
+                //           << " from Rank " << sender_rank << " (tag=" << dep << ")" 
+                //           << std::endl;
             }
         }
 
@@ -76,8 +76,8 @@ void parallelTriangularSolve_p2p(
                     x[row] = (b[row] - sum) / diag;
                     computed[row] = true;
 
-                    std::cout << "[Rank " << rank << "] computed x[" << row << "] = " << x[row] 
-                              << std::endl;
+                    // std::cout << "[Rank " << rank << "] computed x[" << row << "] = " << x[row] 
+                    //           << std::endl;
                 }
             }
         }
@@ -96,8 +96,8 @@ void parallelTriangularSolve_p2p(
 
                     for (int dst : target_ranks) {
                         MPI_Send(&x[row], 1, MPI_DOUBLE, dst, row, MPI_COMM_WORLD);
-                        std::cout << "[Rank " << rank << "] sent x[" << row << "]=" << x[row] 
-                                  << " to Rank " << dst << " (tag=" << row << ")" << std::endl;
+                        // std::cout << "[Rank " << rank << "] sent x[" << row << "]=" << x[row] 
+                        //           << " to Rank " << dst << " (tag=" << row << ")" << std::endl;
                     }
                     sent[row] = true;
                 }
