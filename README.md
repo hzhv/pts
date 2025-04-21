@@ -5,13 +5,13 @@
 | 259,789 | 259,789 | 4,242,673 | 0.0159515%   |
 - **Symmetric**:	Yes 
 - **Levels in total**: 13,486  
-- **Each level contains** 19.26 rows on average.
+- Each level contains **19.26 rows on average**.
 - ![Offshore Matrix Visualization](./images/offshore_L_csr200.png)  
 
-**Solve 100 times each:**
+**The Average Result, solve 100 times each:**
 |Matlab  | -np 1    | -np 2     | -np 4    | -np 8    | Serial    |
 |--------|----------|-----------|----------|----------|-----------|
-|0.116147| 0.0635186| 0.115715  | 0.16013  | 0.220695 | 0.0545086 |
+|0.116147| 0.0658924| 0.053084  | 0.0501442  | 0.0569574 | 0.0545086 |
 |0.122958| 
 |0.118623| 
 

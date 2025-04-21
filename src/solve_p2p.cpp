@@ -82,7 +82,7 @@ void parallelTriangularSolve_p2p(
             }
         }
 
-        // Step C: 将本层新计算好的行发送给更后面层次需要它们的进程
+        // Step C: Send row by row, very inefficient
         {
             for (int row : levels[lev]) {
                 if ((row % numProcs) == rank && computed[row] && !sent[row]) {

@@ -26,22 +26,50 @@ CSRMatrix loadCSR(std::string& filename);
 
 CSRMatrix loadCSRFromTripletFile(const std::string& filename);
 
-std::vector<std::vector<int>> levelScheduling(const CSRMatrix& A, 
+std::vector<std::vector<int>> levelScheduling
+(
+    const CSRMatrix& A, 
     std::vector<std::vector<int>>& dependents,
-    std::vector<std::vector<int>>& dependencies);
+    std::vector<std::vector<int>>& dependencies
+);
 
-void parallelTriangularSolve(
+void levelScheduling_plain
+(
+    const CSRMatrix& A,
+    std::vector<int>& level_ptr,
+    std::vector<int>& level_rows,
+    std::vector<int>& dep_ptr,
+    std::vector<int>& dep_rows
+);
+
+void parallelTriangularSolve
+(
     const CSRMatrix& L, const std::vector<double>& b, std::vector<double>& x, 
-    const std::vector<std::vector<int>>& levels, int rank, int numProcs);
+    const std::vector<std::vector<int>>& levels, int rank, int numProcs
+);
 
-void parallelTriangularSolve_p2p(
+void parallelTriangularSolve_p2p
+(
     const CSRMatrix& L, const std::vector<double>& b, std::vector<double>& x, 
     const std::vector<std::vector<int>>& dependents,
     const std::vector<std::vector<int>>& dependencies,
     const std::vector<std::vector<int>>& levels, int rank, int numProcs
 );
 
-void serialTriangularSolve(
+void parallelTriangularSolve_block
+(
+    const CSRMatrix& L,
+    std::vector<double>& x, const std::vector<double>& b,
+    std::vector<int>& level_ptr,
+    std::vector<int>& level_rows,
+    std::vector<int>& dep_ptr,
+    std::vector<int>& dep_rows,
+    int rank, int P
+    // MPI_Comm comm = MPI_COMM_WORLD
+);
+
+void serialTriangularSolve
+(
     const CSRMatrix& L, const std::vector<double>& b, std::vector<double>& x
 );
 
