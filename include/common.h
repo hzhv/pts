@@ -1,5 +1,4 @@
-#ifndef COMMON_H
-#define COMMON_H
+#pragma once
 
 #include <vector>
 
@@ -42,6 +41,29 @@ void levelScheduling_plain
     std::vector<int>& dep_rows
 );
 
+void buildSchedules(
+    const CSRMatrix& A,
+    const std::vector<int>& row_owner,   
+    int rank,
+    int P,
+
+    // ---- 输出 1：层信息
+    std::vector<int>& level_ptr,
+    std::vector<int>& level_rows,
+
+    // ---- 输出 2：Allgatherv 计数 + 偏移 (flattened)
+    std::vector<int>& level_counts_flat,      // (#levels)*P
+    std::vector<int>& level_displs_flat,
+
+    // ---- 输出 3：本 rank 需要发送的行
+    std::vector<int>& send_rows_ptr,          // (#levels)+1
+    std::vector<int>& send_rows,
+
+    // ---- 输出 4：recvbuf -> x 的置换
+    std::vector<int>& recv_perm_ptr,          // (#levels)+1
+    std::vector<int>& recv_perm
+);
+
 void parallelTriangularSolve
 (
     const CSRMatrix& L, const std::vector<double>& b, std::vector<double>& x, 
@@ -68,32 +90,23 @@ void parallelTriangularSolve_block
     // MPI_Comm comm = MPI_COMM_WORLD
 );
 
+void parallelTriangularSolve_fast
+(
+    const CSRMatrix& L,
+    const std::vector<int>& level_ptr,
+    const std::vector<int>& level_rows,
+    const std::vector<int>& level_counts_flat,  
+    const std::vector<int>& level_displs_flat,  
+    const std::vector<int>& send_rows_ptr,
+    const std::vector<int>& send_rows,          
+    const std::vector<int>& recv_perm_ptr,
+    const std::vector<int>& recv_perm,
+    const std::vector<double>& b,
+    std::vector<double>& x,
+    int rank, int P
+);
+
 void serialTriangularSolve
 (
     const CSRMatrix& L, const std::vector<double>& b, std::vector<double>& x
 );
-
-// void distributeBlocks(const std::vector<LocalCSR>& localParts, 
-//     LocalCSR& myPart, 
-//     int rank, int numProcs);
-// struct LocalCSR 
-// {
-//     int local_n;             // 本地拥有的行数
-//     int start_global_row;    // 该块在全局的起始行号
-//     std::vector<int> row_ptr;
-//     std::vector<int> col_id;
-//     std::vector<double> val;
-// };
-
-// void distributeBlocks(const CSRMatrix& globalMatrix, LocalCSR& localMatrix, 
-//     int rank, int numProcs);
-
-// void parallelTriangularSolve_block(const LocalCSR& myPart, const std::vector<double>& b, 
-//         std::vector<double>& globalX,
-//         const std::vector<std::vector<int>> &levels, int rank, int numProcs);
-
-// void broadcastLevels(std::vector<std::vector<int>>& levels, int rank);
-
-// void blockRowPartition(const CSRMatrix& A_csr, std::vector<LocalCSR>& localParts, int numProcs);
-
-#endif

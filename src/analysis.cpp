@@ -1,13 +1,123 @@
 #include <iostream>
 #include <vector>
 #include <stdexcept>
+#include <numeric>
 #include "common.h"
 
 using namespace std;
 
+void buildSchedules(
+    const CSRMatrix& A,
+    const vector<int>& row_owner,
+    int rank, int P,
+    
+    vector<int>&   level_ptr,
+    vector<int>&   level_rows,
+
+    vector<int>&   level_counts_flat,      // (#levels)*P
+    vector<int>&   level_displs_flat,
+
+    vector<int>&   send_rows_ptr,          // (#levels)+1
+    vector<int>&   send_rows,
+
+    vector<int>&   recv_perm_ptr,          // (#levels)+1
+    vector<int>&   recv_perm
+) 
+{
+    const int n = A.n;
+    /***************** 1)  dependents & level_ptr/rows (Kahn) *****************/
+    vector<int> in_deg(n, 0);
+    vector<int> dep_count(n, 0);
+    for (int i = 0; i < n; ++i) 
+    {
+        for (int idx = A.row_ptr[i]; idx < A.row_ptr[i+1]; ++idx) 
+        {
+            int j = A.col_id[idx];
+            if (j < i) 
+            {
+                in_deg[i]++;      
+                dep_count[j]++;   
+            }
+        }
+    }
+
+    std::vector<int> dep_ptr(n+1);
+    std::partial_sum(dep_count.begin(), dep_count.end(), dep_ptr.begin()+1);
+    std::vector<int> dep_rows(dep_ptr.back());
+    std::vector<int> cursor = dep_ptr;
+    for (int i=0;i<n;++i)
+        for (int idx=A.row_ptr[i]; idx<A.row_ptr[i+1]; ++idx)
+            if (int j=A.col_id[idx]; j<i) dep_rows[cursor[j]++] = i;
+
+    level_ptr = {0};
+    level_rows.clear();
+    std::vector<int> curr;
+    for (int i=0;i<n;++i) if (!in_deg[i]) curr.push_back(i);
+
+    while(!curr.empty()) {
+        for(int r:curr) level_rows.push_back(r);
+        level_ptr.push_back((int)level_rows.size());
+
+        std::vector<int> next;
+        for (int r:curr)
+            for(int p=dep_ptr[r]; p<dep_ptr[r+1]; ++p)
+                if(--in_deg[dep_rows[p]]==0) next.push_back(dep_rows[p]);
+        curr.swap(next);
+    }
+    for (int d : in_deg) 
+        if (d) throw runtime_error("Cycle detected in dependency graph!");
+
+    const int L = (int)level_ptr.size()-1;
+
+    /***************** 2)  level_counts / displs (flatten) *****************/
+    level_counts_flat.assign(L*P, 0);
+    for (int k = 0; k < L; ++k)
+        for(int idx = level_ptr[k]; idx<level_ptr[k+1]; ++idx)
+            ++level_counts_flat[k*P + row_owner[level_rows[idx]]];
+
+    level_displs_flat = level_counts_flat; // same size
+    for (int k = 0; k < L; ++k) {
+        int base = k * P, acc = 0;
+        for(int r = 0; r < P; ++r) { 
+            int tmp = level_displs_flat[base + r]; 
+            level_displs_flat[base + r] = acc; 
+            acc += tmp; 
+        }
+    }
+    /***************** 3)  send local rows *****************/
+    send_rows_ptr.resize(L+1); 
+    send_rows.clear();
+    for(int k = 0; k < L; ++k) {
+        send_rows_ptr[k] = (int)send_rows.size();
+        for(int idx = level_ptr[k]; idx < level_ptr[k+1]; ++idx) {
+            int row = level_rows[idx];
+            if(row_owner[row] == rank) send_rows.push_back(row);
+        }
+    }
+    send_rows_ptr[L] = (int)send_rows.size();
+
+    /***************** 4)  recv_perm: rank based order *****************/
+    recv_perm_ptr.resize(L+1); 
+    recv_perm.clear();
+    for(int k = 0; k < L; ++k) {
+        recv_perm_ptr[k] = (int)recv_perm.size();
+        for(int r = 0; r < P; ++r)
+            for(int idx = level_ptr[k]; idx < level_ptr[k+1]; ++idx)
+                if(row_owner[level_rows[idx]] == r) 
+                    recv_perm.push_back(level_rows[idx]);
+    }
+    recv_perm_ptr[L] = (int)recv_perm.size();
+}
+
+
 vector<vector<int>> levelScheduling
-/* @p
-*/
+/**
+ * @brief Level scheduling for a sparse matrix in CSR format.
+ * @param A The input CSR matrix.
+ * @param dependents A vector of vectors to store the dependents of each row.
+ * @param dependencies A vector of vectors to store the dependencies of each row.
+ * @return 2D vector of vectors representing the levels of the matrix.
+ */
 (
     const CSRMatrix& A, 
     vector<vector<int>>& dependents,
@@ -67,15 +177,15 @@ vector<vector<int>> levelScheduling
 void levelScheduling_plain
 (
     const CSRMatrix& A,
-    std::vector<int>& level_ptr,
-    std::vector<int>& level_rows,
-    std::vector<int>& dep_ptr,
-    std::vector<int>& dep_rows
+    vector<int>& level_ptr,
+    vector<int>& level_rows,
+    vector<int>& dep_ptr,
+    vector<int>& dep_rows
 ) 
 {
     int n = A.n;
-    std::vector<int> in_deg(n, 0);
-    std::vector<int> dep_count(n, 0);
+    vector<int> in_deg(n, 0);
+    vector<int> dep_count(n, 0);
     for (int i = 0; i < n; ++i) 
     {
         for (int idx = A.row_ptr[i]; idx < A.row_ptr[i+1]; ++idx) 
@@ -98,7 +208,7 @@ void levelScheduling_plain
     int m_dep = dep_ptr[n];
     dep_rows.resize(m_dep);
 
-    std::vector<int> cursor = dep_ptr;
+    vector<int> cursor = dep_ptr;
     for (int i = 0; i < n; ++i) 
     {
         for (int idx = A.row_ptr[i]; idx < A.row_ptr[i+1]; ++idx) 
@@ -115,7 +225,7 @@ void levelScheduling_plain
     level_rows.clear();
     level_ptr.push_back(0);
 
-    std::vector<int> curr;
+    vector<int> curr;
     curr.reserve(n);
     for (int i = 0; i < n; ++i) // O(n) 
     {
@@ -130,7 +240,7 @@ void levelScheduling_plain
             level_rows.push_back(r);
         level_ptr.push_back((int)level_rows.size());
 
-        std::vector<int> next;
+        vector<int> next;
         next.reserve(curr.size()); // next lvl size ussually smaller than curr lvl size
         for (int r : curr) {
             for (int p = dep_ptr[r]; p < dep_ptr[r+1]; ++p) {
@@ -145,7 +255,7 @@ void levelScheduling_plain
 
     for (int i = 0; i < n; ++i) {
         if (in_deg[i] != 0) {
-            throw std::runtime_error("Cycle detected in dependency graph!");
+            throw runtime_error("Cycle detected in dependency graph!");
         }
     }
 }

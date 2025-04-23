@@ -59,6 +59,8 @@ void parallelTriangularSolve_block(
             if (row >= ranges[rank].first && row < ranges[rank].last)
                 return rank;
         return 0; 
+
+        // return row % P;
     };
 
     // local_level_ptr[k]..[k+1]) 存放本 rank 在第 k 层的行在 local_level_rows 中的区间
@@ -66,7 +68,6 @@ void parallelTriangularSolve_block(
     std::vector<int> local_level_rows;
     // level_counts[k][r] = kth level's row count on rank r
     std::vector<std::vector<int>> level_counts(numLevels, std::vector<int>(P, 0)); // lvls x ranks
-
     for (int k = 0; k < numLevels; ++k) 
     {
         for (int pos = level_ptr[k]; pos < level_ptr[k+1]; ++pos) 
@@ -82,18 +83,20 @@ void parallelTriangularSolve_block(
 
     //预计算每层的 offset for Allgatherv
     std::vector<std::vector<int>> level_displs(numLevels, std::vector<int>(P, 0));
-    for (int k = 0; k < numLevels; ++k) {
+    for (int k = 0; k < numLevels; ++k) 
+    {
         int acc = 0;
-        for (int r = 0; r < P; ++r) {
+        for (int r = 0; r < P; ++r) 
+        {
             level_displs[k][r] = acc;
             acc += level_counts[k][r];
         }
     }
 
-    // 对每一层只做一次 Allgatherv
+    // Main loop: Each level do a Allgatherv
     for (int k = 0; k < numLevels; ++k) {
         int Lb = level_ptr[k], Le = level_ptr[k+1];
-        int levelSize = Le - Lb;
+        int levelSize = Le - Lb;  // current level size
 
         // 本 rank 在本层的本地行区间
         int lb = local_level_ptr[k], le = local_level_ptr[k+1];
@@ -101,7 +104,8 @@ void parallelTriangularSolve_block(
 
         // Calc local x
         std::vector<double> sendbuf(localCount);
-        for (int idx = lb; idx < le; ++idx) {
+        for (int idx = lb; idx < le; ++idx) 
+        {
             int row = local_level_rows[idx];
             double sum = 0.0;
             int diag_idx = L.row_ptr[row+1] - 1;
@@ -115,14 +119,32 @@ void parallelTriangularSolve_block(
         }
 
         std::vector<double> recvbuf(levelSize);
-        MPI_Allgatherv(
+        // // ----- Blocked
+        // MPI_Allgatherv(
+        //     sendbuf.data(), localCount, MPI_DOUBLE,
+        //     recvbuf.data(),
+        //     level_counts[k].data(),
+        //     level_displs[k].data(),
+        //     MPI_DOUBLE,
+        //     MPI_COMM_WORLD
+        // );
+
+        // ----- Non-blocked
+        MPI_Request req;
+        MPI_Iallgatherv(
             sendbuf.data(), localCount, MPI_DOUBLE,
             recvbuf.data(),
             level_counts[k].data(),
             level_displs[k].data(),
             MPI_DOUBLE,
-            MPI_COMM_WORLD
+            MPI_COMM_WORLD,
+            &req
         );
+        MPI_Wait(&req, MPI_STATUS_IGNORE);
+        // for (int i = 0; i < levelSize; ++i) {
+        //     int row = level_rows[Lb + i];
+        //     x[row] = recvbuf[i];
+        // }
 
         int pos = 0;
         for (int r = 0; r < P; ++r) {

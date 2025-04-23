@@ -1,21 +1,27 @@
-**04/10/2025** 
+
 **[offshore.mat](https://sparse.tamu.edu/Um/offshore)** 
-| Rows    | Cols    | Nonzeros  | Density      |
-|---------|---------|-----------|--------------|
-| 259,789 | 259,789 | 4,242,673 | 0.0159515%   |
+| Rows    | Cols    | Nonzeros  | Nonzeros per Row | Density      |
+|---------|---------|-----------| -----------------|--------------|
+| 259,789 | 259,789 | 4,242,673 | 16 average       | 0.0159515%   |
 - **Symmetric**:	Yes 
 - **Levels in total**: 13,486  
 - Each level contains **19.26 rows on average**.
-- ![Offshore Matrix Visualization](./images/offshore_L_csr200.png)  
+- ![Offshore Matrix Visualization](./images/offshore_L_csr200.png) 
 
+
+**04/22/2025** 
 **The Average Result, solve 100 times each:**
-|Matlab  | -np 1    | -np 2     | -np 4    | -np 8    | Serial    |
-|--------|----------|-----------|----------|----------|-----------|
-|0.116147| 0.0658924| 0.053084  | 0.0501442  | 0.0569574 | 0.0545086 |
-|0.122958| 
-|0.118623| 
+|Type     |Matlab    | -np 1     | -np 2    | -np 4     | -np 8    |
+|---------|----------|-----------|----------|-----------|----------|
+| blocked | 0.116147 | 0.0616060 | 0.050763 | 0.0483569 | 0.0504434|
+|Non-block|-         | 0.0627805 | 0.0534039| 0.048558  | 0.058599 |
 
-
+**04/19/2025** 
+**The Average Result, solve 100 times each:**
+|Type     |Matlab    | -np 1     | -np 2    | -np 4     | -np 8    | Serial    |
+|---------|----------|-----------|----------|-----------|----------|-----------|
+| blocked  |0.116147 | 0.0658924 | 0.053084 | 0.0501442 | 0.0569574| 0.0545086 |
+|Non-block|-|       |         |
 
 **[L_FEM_3D_thermal2_csr.mat](https://sparse.tamu.edu/Botonakis/FEM_3D_thermal2)** 
 
