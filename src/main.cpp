@@ -29,10 +29,15 @@ int main(int argc, char* argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
 
-    if (argc < 2 && rank == 0) {
+    if (argc < 2 && rank == 0) 
+    {
         std::cerr << "Usage: " << argv[0] << " <csr_filename>\n";
     }
-    if (argc < 2) { MPI_Finalize(); return -1; }
+    if (argc < 2) 
+    { 
+        MPI_Finalize(); 
+        return -1; 
+    }
 
     // Get and Bcast A_csr
     CSRMatrix A_csr;
@@ -72,66 +77,70 @@ int main(int argc, char* argv[])
         std::cout << std::endl;
     }
 
-    // ====================== Test start ======================
     std::vector<int> row_owner = buildRowOwner_block(A_csr.n, numProcs);
+    // ====================== Fast Test start ======================
 
-    std::vector<int> level_ptr, level_rows,
-                     level_counts_flat, level_displs_flat,
-                     send_rows_ptr, send_rows,
-                     recv_perm_ptr,  recv_perm;
+    // std::vector<int> level_ptr, level_rows,
+    //                  level_counts_flat, level_displs_flat,
+    //                  send_rows_ptr, send_rows,
+    //                  recv_perm_ptr,  recv_perm;
 
-    buildSchedules(
-        A_csr, row_owner, rank, numProcs,
-        level_ptr, level_rows,
-        level_counts_flat, level_displs_flat,
-        send_rows_ptr, send_rows,
-        recv_perm_ptr, recv_perm
-    );
+    // buildSchedules
+    // (
+    //     A_csr, row_owner, rank, numProcs,
+    //     level_ptr, level_rows,
+    //     level_counts_flat, level_displs_flat,
+    //     send_rows_ptr, send_rows,
+    //     recv_perm_ptr, recv_perm
+    // );
+
+    // double start_parallel = MPI_Wtime();
+    // try 
+    // {   
+    //     for (int i = 0; i < 100; ++i)  
+    //         parallelTriangularSolve_fast
+    //         (
+    //             A_csr, level_ptr, level_rows,
+    //             level_counts_flat, level_displs_flat,
+    //             send_rows_ptr, send_rows,
+    //             recv_perm_ptr,  recv_perm,
+    //             b, x, 
+    //             rank, numProcs
+    //         );
+    // }
+    // ====================== Fast Test End ======================
+    std::vector<int> level_ptr, level_rows, dep_ptr, dep_rows;
+    if (rank == 0) 
+    {   
+        levelScheduling_plain(A_csr, level_ptr, level_rows, dep_ptr, dep_rows);
+    }
+    bcast_vector(level_ptr,  0, MPI_COMM_WORLD);
+    bcast_vector(level_rows, 0, MPI_COMM_WORLD);    
+    if (rank == 0) 
+    {
+        std::cout << "Broadcast of levels and dependents completed.\n" << 
+        "Levels 1D array length = " << level_ptr.size()-1 << // = # of lvl
+        "\nDependents 1D array size = " << dep_ptr.size()-1 << std::endl; // = # of rows
+    }
 
     double start_parallel = MPI_Wtime();
     try 
     {   
         for (int i = 0; i < 100; ++i)
-        parallelTriangularSolve_fast(
-            A_csr, level_ptr, level_rows,
-            level_counts_flat, level_displs_flat,
-            send_rows_ptr, send_rows,
-            recv_perm_ptr,  recv_perm,
-            b, x, 
-            rank, numProcs
-        );
-    }
-    // ====================== Test End ======================
-    // std::vector<int> level_ptr, level_rows, dep_ptr, dep_rows;
-    // if (rank == 0) 
-    // {   
-    //     levelScheduling_plain(A_csr, level_ptr, level_rows, dep_ptr, dep_rows);
-    // }
-    // bcast_vector(level_ptr,  0, MPI_COMM_WORLD);
-    // bcast_vector(level_rows, 0, MPI_COMM_WORLD);    
-    // if (rank == 0) 
-    // {
-    //     std::cout << "Broadcast of levels and dependents completed.\n" << 
-    //     "Levels 1D array length = " << level_ptr.size()-1 << // = # of lvl
-    //     "\nDependents 1D array size = " << dep_ptr.size()-1 << std::endl; // = # of rows
-    // }
-
-    // double start_parallel = MPI_Wtime();
-    // try 
-    // {   
-    //     for (int i = 0; i < 100; ++i)
-    //     {
-    //         parallelTriangularSolve_block
-    //         (
-    //             A_csr, 
-    //             x, b, 
-    //             level_ptr, 
-    //             level_rows,
-    //             dep_ptr, dep_rows,
-    //             rank, numProcs
-    //         );
-    //     }
-    // } 
+        {
+            parallelTriangularSolve_block
+            (
+                A_csr, 
+                x, b, 
+                level_ptr, 
+                level_rows,
+                row_owner,
+                dep_ptr, dep_rows,
+                rank, numProcs
+            );
+        }
+    } 
+    // ====================== Block Test End ======================
     catch (const std::exception& e) 
     {
         if (rank == 0)
@@ -140,7 +149,8 @@ int main(int argc, char* argv[])
     }
     double end_parallel = MPI_Wtime();
     
-    if (rank == 0) {
+    if (rank == 0) 
+    {
         std::cout << "Parallel solve time: " 
             << (end_parallel - start_parallel) << " sec" << "\n";
 

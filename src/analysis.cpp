@@ -175,6 +175,12 @@ vector<vector<int>> levelScheduling
 }
 
 void levelScheduling_plain
+/**
+ * @brief Level scheduling for a sparse matrix in CSR format.
+ * @param A The input CSR matrix.
+ * @param level_ptr Output 1d vector to store the starting index of each level.
+ * @param level_rows Output 1d vector to store the rows in each level.
+ */
 (
     const CSRMatrix& A,
     vector<int>& level_ptr,

@@ -9,14 +9,16 @@
 - ![Offshore Matrix Visualization](./images/offshore_L_csr200.png) 
 
 
-**04/22/2025** 
-**The Average Result, solve 100 times each:**
+**04/22/2025**
+**Partition and Process Allocation moved out of solver, Block Partition used**    
+**The Average Result, solve 100 times each**
 |Type     |Matlab    | -np 1     | -np 2    | -np 4     | -np 8    |
 |---------|----------|-----------|----------|-----------|----------|
 | blocked | 0.116147 | 0.0616060 | 0.050763 | 0.0483569 | 0.0504434|
 |Non-block|-         | 0.0627805 | 0.0534039| 0.048558  | 0.058599 |
 
 **04/19/2025** 
+**Block Partition used**   
 **The Average Result, solve 100 times each:**
 |Type     |Matlab    | -np 1     | -np 2    | -np 4     | -np 8    | Serial    |
 |---------|----------|-----------|----------|-----------|----------|-----------|

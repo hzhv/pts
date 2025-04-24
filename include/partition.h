@@ -6,7 +6,7 @@
  * @param n total number of rows
  * @param P number of processes 
  */
-inline std::vector<int> buildRowOwner_roundRobin(int n, int P) {
+inline std::vector<int> buildRowOwner_mod(int n, int P) {
     std::vector<int> owner(n);
     for (int row = 0; row < n; ++row)
         owner[row] = row % P;

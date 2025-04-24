@@ -84,6 +84,7 @@ void parallelTriangularSolve_block
     std::vector<double>& x, const std::vector<double>& b,
     std::vector<int>& level_ptr,
     std::vector<int>& level_rows,
+    std::vector<int>& row_owner,
     std::vector<int>& dep_ptr,
     std::vector<int>& dep_rows,
     int rank, int P
