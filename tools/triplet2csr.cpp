@@ -36,7 +36,6 @@ CSRMatrix loadCSRFromTripletFile(const std::string& filename) {
         }
     }
 
-    // 将三元组按照行号排序，如果行号相同，则按照列号排序
     std::sort(triplets.begin(), triplets.end(), [](const Triplet& a, const Triplet& b) 
     {
         return (a.row == b.row) ? (a.col < b.col) : (a.row < b.row);
@@ -50,14 +49,13 @@ CSRMatrix loadCSRFromTripletFile(const std::string& filename) {
     for (const auto& t : triplets) {
         row_ptr[t.row + 1]++;
     }
-    // 累加得到 row_ptr 数组
+
     for (int i = 0; i < n; ++i) {
         row_ptr[i + 1] += row_ptr[i];
     }
 
-    // 为每行分配一个当前位置的辅助数组（拷贝 row_ptr）
     std::vector<int> current_row_ptr = row_ptr;
-    // 遍历排序后的三元组，将数据填入 CSR 数组
+
     for (const auto& t : triplets) {
         int pos = current_row_ptr[t.row]++;
         col_id[pos] = t.col;

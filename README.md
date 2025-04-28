@@ -8,14 +8,28 @@
 - Each level contains **19.26 rows on average**.
 - ![Offshore Matrix Visualization](./images/offshore_L_csr200.png) 
 
+**04/26/2025** 
+**Used a synthetic 2 level sparse matrix which n = 25600, density = 0.011669%**    
+|Exp        | -np 1      | -np 2     | -np 4     |  -np 8      | Serial      |
+|-----------|------------|-----------|-----------|-------------|-------------|
+| 100 times |0.000155298 |0.000177485|0.00022731 | 0.000249848 | 0.0000800272|
+|  1  times |0.000124601 |0.00116101 |0.000253124|0.000286278  | 0.000087889 |
+<!-- | 100 times |0.00010114  |0.000455158|0.000421344| 0.000611659 | 0.0000800272| -->
 
-**04/22/2025**        
+**04/24/2025**
+**Block Partition used** 
 **Partition and Process Allocation moved out of solver, Block Partition used**    
+|Type     |Matlab    | -np 1     | -np 2     | -np 4     | -np 8    |
+|---------|----------|-----------|-----------|-----------|----------|
+| blocked | 0.116147 | 0.063649  | 0.0491819 | 0.0476371 | 0.0495306|
+
+**04/22/2025** 
+**Block Partition used** 
 **The Average Result, solve 100 times each**
 |Type     |Matlab    | -np 1     | -np 2    | -np 4     | -np 8    |
 |---------|----------|-----------|----------|-----------|----------|
-| blocked | 0.116147 | 0.0616060 | 0.050763 | 0.0483569 | 0.0504434|
-|Non-block|-         | 0.0627805 | 0.0534039| 0.048558  | 0.058599 |
+| blocked | 0.116147 | 0.0616060 | 0.0512058| 0.0483569 | 0.0504434|
+
 
 **04/19/2025**      
 **Block Partition used**   

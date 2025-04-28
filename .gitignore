@@ -2,5 +2,12 @@ build/
 /*.txt
 /sketch.c
 /solver
+/solver_bp_fast_1time
+/solver_bp_fast_100time
+/solver_bp_reg_1time
+/solver_bp_reg_100time
 /ss
+/ss100
 /compare_res
+/note.md
+/getMatrix

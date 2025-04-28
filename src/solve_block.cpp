@@ -5,35 +5,35 @@
 #include <stdexcept>
 #include "common.h"
 
-struct RowRange 
-{ 
-    int first;
-    int last; 
-};
+// struct RowRange 
+// { 
+//     int first;
+//     int last; 
+// };
 
-static std::vector<RowRange> makeBlockPartition(int P, int n) 
-/**
- * @brief Partition the rows [0, n) into P contiguous blocks as evenly as possible.
- * e.g. if n = 10 and P = 3, the result will be:
- *      Block 0: [0, 4)
- *      Block 1: [4, 7)
- *      Block 2: [7, 10)
- * @param P The number of blocks (e.g., number of processes).
- * @param n The total number of elements to partition.
- * @return A vector of RowRange structs, each representing the range assigned to one block.
- */
-{
-    std::vector<RowRange> ranges(P);
-    int base = n / P;
-    int rem = n % P; 
-    int start = 0;
-    for (int b = 0; b < P; ++b) {
-        int len = base + (b < rem ? 1 : 0);
-        ranges[b] = { start, start + len };
-        start += len;
-    }
-    return ranges;
-}
+// static std::vector<RowRange> makeBlockPartition(int P, int n) 
+// /**
+//  * @brief Partition the rows [0, n) into P contiguous blocks as evenly as possible.
+//  * e.g. if n = 10 and P = 3, the result will be:
+//  *      Block 0: [0, 4)
+//  *      Block 1: [4, 7)
+//  *      Block 2: [7, 10)
+//  * @param P The number of blocks (e.g., number of processes).
+//  * @param n The total number of elements to partition.
+//  * @return A vector of RowRange structs, each representing the range assigned to one block.
+//  */
+// {
+//     std::vector<RowRange> ranges(P);
+//     int base = n / P;
+//     int rem = n % P; 
+//     int start = 0;
+//     for (int b = 0; b < P; ++b) {
+//         int len = base + (b < rem ? 1 : 0);
+//         ranges[b] = { start, start + len };
+//         start += len;
+//     }
+//     return ranges;
+// }
 
 void parallelTriangularSolve_block(
     const CSRMatrix& L,
@@ -95,7 +95,7 @@ void parallelTriangularSolve_block(
         }
     }
 
-// ========================== New Test ===============================
+// ========================== DON'T USE THE FOLLOWINGS !! ===============================
 // 
     // --- 2) 一次性构造 send_rows_ptr & send_rows ---
     //    直接重用 local_level_ptr & local_level_rows
@@ -215,7 +215,7 @@ void parallelTriangularSolve_block(
 
         int pos = 0;
         for (int r = 0; r < P; ++r) {
-            // 针对本层，找出所有 owner(row)==r 的行号，顺序与 level_rows 相同
+            // For each level，find owner(row)==r，which has the same order of level_rows
             for (int idx = Lb; idx < Le; ++idx) {
                 int row = level_rows[idx];
                 if (row_owner[row] == r) {          

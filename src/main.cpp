@@ -78,12 +78,12 @@ int main(int argc, char* argv[])
     }
 
     std::vector<int> row_owner = buildRowOwner_block(A_csr.n, numProcs);
-    // ====================== Fast Test start ======================
+    // ====================== "Fastest" Test start ======================
 
     // std::vector<int> level_ptr, level_rows,
     //                  level_counts_flat, level_displs_flat,
     //                  send_rows_ptr, send_rows,
-    //                  recv_perm_ptr,  recv_perm;
+    //                  recv_perm_ptr,  recv_perm; // lD Array
 
     // buildSchedules
     // (
@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
     // double start_parallel = MPI_Wtime();
     // try 
     // {   
-    //     for (int i = 0; i < 100; ++i)  
+    //     // for (int i = 0; i < 100; ++i)  
     //         parallelTriangularSolve_fast
     //         (
     //             A_csr, level_ptr, level_rows,
@@ -108,7 +108,8 @@ int main(int argc, char* argv[])
     //             rank, numProcs
     //         );
     // }
-    // ====================== Fast Test End ======================
+    // ====================== "Fastest" Test End ======================
+    // ============================================
     std::vector<int> level_ptr, level_rows, dep_ptr, dep_rows;
     if (rank == 0) 
     {   
@@ -119,15 +120,14 @@ int main(int argc, char* argv[])
     if (rank == 0) 
     {
         std::cout << "Broadcast of levels and dependents completed.\n" << 
-        "Levels 1D array length = " << level_ptr.size()-1 << // = # of lvl
-        "\nDependents 1D array size = " << dep_ptr.size()-1 << std::endl; // = # of rows
+        "Levels 1D array length = " << level_ptr.size()-1 << std::endl; // = # of lvls
+        // "\nDependents 1D array size = " << dep_ptr.size()-1 << std::endl; // = # of rows
     }
 
     double start_parallel = MPI_Wtime();
     try 
     {   
-        for (int i = 0; i < 100; ++i)
-        {
+        // for (int i = 0; i < 100; ++i)
             parallelTriangularSolve_block
             (
                 A_csr, 
@@ -138,7 +138,6 @@ int main(int argc, char* argv[])
                 dep_ptr, dep_rows,
                 rank, numProcs
             );
-        }
     } 
     // ====================== Block Test End ======================
     catch (const std::exception& e) 

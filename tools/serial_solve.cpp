@@ -81,10 +81,10 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Starting serial triangular solve...\n";
     auto start = std::chrono::high_resolution_clock::now();
-    // for (int i = 0; i < 100; ++i) {
+    // for (int i = 0; i < 100; ++i)
         serialTriangularSolve(L, b, x);
         x.clear(); b.clear(); 
-        // }        
+  
     auto end = std::chrono::high_resolution_clock::now();
     double duration = std::chrono::duration<double>(end - start).count();
     std::cout << "Serial triangular solve time: " << duration << " seconds\n";
