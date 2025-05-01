@@ -7,10 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-
-#define NX 160
-#define NY 160
-#define NN (NX*NY)               /* 25 600 */
+#include <math.h> // -lm
 
 #define MAX_NZ_PER_ROW 5         /* 5-point stencil          */
 
@@ -20,82 +17,101 @@ typedef struct {                 /* simple COO triplet       */
 } nz_t;
 
 /* map 2-D (ix,iy) → global id */
-static inline int gid(int ix,int iy){ return iy*NX + ix; }
+static inline int gid(int ix,int iy, int NX)
+{ 
+    return iy*NX + ix; 
+}
 
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <n>\n", argv[0]);
+        return EXIT_FAILURE;
+    }
 
-int main(void)
-{
-    /* 1. build Laplacian in COO ------------------------------*/
-    nz_t *coo = malloc(NN*MAX_NZ_PER_ROW*sizeof(nz_t));
+    int N = atoi(argv[1]);
+    int NX = (int)(floor(sqrt((double)N) + 0.5));
+    if (NX * NX != N) {
+        fprintf(stderr, "Error: n = %d is not a perfect square\n", N);
+        return EXIT_FAILURE;
+    }
+    int NY = NX;
+    int NN = NX * NY;  /* = N */
+
+    /* 2. 在 COOmatrix 中生成 5 点 Laplacian */
+    size_t max_nz = (size_t)NN * 5;
+    nz_t *coo = malloc(max_nz * sizeof(nz_t));
+    if (!coo) { perror("malloc coo"); return EXIT_FAILURE; }
     size_t nz = 0;
-
-    for (int iy=0; iy<NY; ++iy)
-    for (int ix=0; ix<NX; ++ix){
-        int p = gid(ix,iy);
-
-        /* centre */
-        coo[nz++] = (nz_t){p,p, 4.0};
-
-        /* four neighbours if inside domain */
-        if(ix>0   ) coo[nz++] = (nz_t){p,gid(ix-1,iy),-1.0};
-        if(ix<NX-1) coo[nz++] = (nz_t){p,gid(ix+1,iy),-1.0};
-        if(iy>0   ) coo[nz++] = (nz_t){p,gid(ix,iy-1),-1.0};
-        if(iy<NY-1) coo[nz++] = (nz_t){p,gid(ix,iy+1),-1.0};
-    }
-
-    /* 2. create red-black permutation ------------------------*/
-    int32_t *perm = malloc(NN*sizeof(int32_t));
-    int32_t *invp = malloc(NN*sizeof(int32_t));
-    int rptr = 0, bptr = 0;
-    /* first count reds to know where black block starts */
-    for(int iy=0;iy<NY;++iy)
-    for(int ix=0;ix<NX;++ix)
-        if( (ix+iy)&1 ) ++bptr;
-    rptr = 0;                /* reds at front         */
-    int bbase = bptr;        /* black block offset    */
-
-    for(int iy=0;iy<NY;++iy)
-    for(int ix=0;ix<NX;++ix){
-        int p = gid(ix,iy);
-        if( ((ix+iy)&1)==0 ){            /* red */
-            perm[p] = rptr;
-            invp[rptr++] = p;
-        }else{                           /* black */
-            perm[p] = bptr;
-            invp[bptr++] = p;
+    for (int iy = 0; iy < NY; iy++) {
+        for (int ix = 0; ix < NX; ix++) {
+            int p = gid(ix, iy, NX);
+            /* 自身 */
+            coo[nz++] = (nz_t){p, p, 4.0};
+            /* 四邻域 */
+            if (ix > 0)     coo[nz++] = (nz_t){p, gid(ix-1, iy, NX), -1.0};
+            if (ix < NX-1)  coo[nz++] = (nz_t){p, gid(ix+1, iy, NX), -1.0};
+            if (iy > 0)     coo[nz++] = (nz_t){p, gid(ix, iy-1, NX), -1.0};
+            if (iy < NY-1)  coo[nz++] = (nz_t){p, gid(ix, iy+1, NX), -1.0};
         }
     }
 
-    /* 3. convert to CSR keeping only col<=row (lower part) ----*/
+    /* 3. 红黑重排 —— 得到 perm 和 invp */
+    int32_t *perm = malloc(NN * sizeof(int32_t));
+    int32_t *invp = malloc(NN * sizeof(int32_t));
+    if (!perm || !invp) { perror("malloc perm"); return EXIT_FAILURE; }
+    /* ------ 统计黑点、红点个数 ---------------------------- */
+    int black_cnt = 0;
+    for (int iy = 0; iy < NY; ++iy)
+        for (int ix = 0; ix < NX; ++ix)
+            if ((ix + iy) & 1) ++black_cnt;
+
+    int red_cnt   = NN - black_cnt;   /* 红 = 总 - 黑    */
+    int rptr = 0;                     /* 红块从 0 开始   */
+    int bptr = red_cnt;               /* 黑块紧随其后   */
+
+    /* ------ 建 permutation --------------------------------- */
+    for (int iy = 0; iy < NY; ++iy)
+        for (int ix = 0; ix < NX; ++ix) 
+        {
+            int p = gid(ix, iy, NX);
+            if (((ix + iy) & 1) == 0) {         /* red */
+                perm[p] = rptr;
+                invp[rptr++] = p;
+            } else {                            /* black */
+                perm[p] = bptr;
+                invp[bptr++] = p;
+            }
+        }
+
+
+    /* 4. 统计并组装下三角 CSR */
     int32_t *row_ptr = calloc(NN+1, sizeof(int32_t));
-    int32_t *col_idx = malloc(nz * sizeof(int32_t));
-    double  *val     = malloc(nz * sizeof(double));
-    size_t   nzL = 0;
-
-    /* first pass: count non-zeros per row of L                */
-    for(size_t k=0;k<nz;++k){
-        int32_t i = perm[coo[k].r];
-        int32_t j = perm[coo[k].c];
-        if(j<=i){ ++row_ptr[i+1]; }
+    if (!row_ptr) { perror("calloc row_ptr"); return EXIT_FAILURE; }
+    /* 第一遍计数 */
+    for (size_t k = 0; k < nz; k++) {
+        int i = perm[coo[k].r], j = perm[coo[k].c];
+        if (j <= i) row_ptr[i+1]++;
     }
-    for(int i=0;i<NN;i++) row_ptr[i+1]+=row_ptr[i];
+    for (int i = 0; i < NN; i++)
+        row_ptr[i+1] += row_ptr[i];
+    size_t nzL = row_ptr[NN];
 
-    /* second pass: fill arrays                                */
-    int32_t *cursor = malloc(NN*sizeof(int32_t));
-    for(int i=0;i<NN;i++) cursor[i]=row_ptr[i];
-
-    for(size_t k=0;k<nz;++k){
-        int32_t i = perm[coo[k].r];
-        int32_t j = perm[coo[k].c];
-        if(j<=i){
-            size_t pos = cursor[i]++;
-            col_idx[pos] = j;
-            val[pos]     = coo[k].v;
-            ++nzL;
+    int32_t *col_id = malloc(nzL * sizeof(int32_t));
+    double  *val    = malloc(nzL * sizeof(double));
+    if (!col_id || !val) { perror("malloc col_id/val"); return EXIT_FAILURE; }
+    int32_t *cursor = malloc(NN * sizeof(int32_t));
+    for (int i = 0; i < NN; i++) cursor[i] = row_ptr[i];
+    /* 第二遍填充 */
+    for (size_t k = 0; k < nz; k++) {
+        int i = perm[coo[k].r], j = perm[coo[k].c];
+        double v = coo[k].v;
+        if (j <= i) {
+            int pos = cursor[i]++;
+            col_id[pos] = j;
+            val[pos]    = v;
         }
     }
 
-    /* 4. write to matrix.txt —— */
     /* Output format:
         * n
         * row_ptr.size()
@@ -104,41 +120,35 @@ int main(void)
         * col_id
         * val.size()
         * val
-        */
-    
-    FILE *fp = fopen("synthetic_matrix.txt","w");
-  
-    /* n */
-    fprintf(fp, "%d\n", NN);
+    */
+   char fname[64];
+   snprintf(fname, sizeof(fname), "syn_matrix_n%d.txt", N);
+   FILE *fp = fopen(fname, "w");
+   if (!fp) { perror("fopen output file"); return EXIT_FAILURE; }
 
-    /* row_ptr.size() */
-    fprintf(fp, "%d\n", NN+1);
-    /* row_ptr */
-    for (int i = 0; i <= NN; i++) {
-        fprintf(fp, "%d%s", row_ptr[i], (i==NN ? "\n" : " "));
-    }
 
-    /* col_id.size() */
-    fprintf(fp, "%zu\n", nzL);
-    /* col_id */
-    for (size_t k = 0; k < nzL; k++) {
-        fprintf(fp, "%d%s", col_idx[k], (k+1==nzL ? "\n" : " "));
-    }
+   fprintf(fp, "%d\n", NN);
+   fprintf(fp, "%d\n", NN+1);
+   for (int i = 0; i <= NN; i++)
+       fprintf(fp, "%d%c", row_ptr[i], (i==NN?'\n':' '));
+   fprintf(fp, "%zu\n", nzL);
+   for (size_t k = 0; k < nzL; k++)
+       fprintf(fp, "%d%c", col_id[k], (k+1==nzL?'\n':' '));
+   fprintf(fp, "%zu\n", nzL);
+   for (size_t k = 0; k < nzL; k++)
+       fprintf(fp, "%.17g%c", val[k], (k+1==nzL?'\n':' '));
 
-    /* val.size() */
-    fprintf(fp, "%zu\n", nzL);
-    /* val */
-    for (size_t k = 0; k < nzL; k++) {
-        fprintf(fp, "%.17g%s", val[k], (k+1==nzL ? "\n" : " "));
-    }
+   fclose(fp);
+   printf("Finished: %s （%d×%d in Lower CSR，%zu nnz）\n",
+          fname, NN, NN, nzL);
 
-    fclose(fp);
-    printf("CSR matrix file saved.\n");
+   free(coo);
+   free(perm);
+   free(invp);
+   free(row_ptr);
+   free(col_id);
+   free(val);
+   free(cursor);
 
-    /* tidy */
-    free(coo); free(perm); free(invp);
-    free(row_ptr); free(col_idx); free(val); free(cursor);
-
-    
-    return 0;
+   return EXIT_SUCCESS;
 }

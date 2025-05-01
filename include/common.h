@@ -104,6 +104,7 @@ void parallelTriangularSolve_fast
     const std::vector<int>& recv_perm,
     const std::vector<double>& b,
     std::vector<double>& x,
+    double& comm_time,
     int rank, int P
 );
 
