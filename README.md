@@ -2,7 +2,7 @@
 
 **04/30/2025**    
 **Use different Synthtic Matrix from 5-point stencil FDM**   
-** Communication Time / Solving time, each of the following exp runs 1000 times**   
+**Communication Time / Solving time, each of the following exp runs 1000 times**   
 | Matrix size  | -np 1       | -np 2     | -np 4     |  -np 8      | Serial      | Matlab      |
 |--------------|-------------|-----------|-----------|-------------|-------------|-------------|
 | 100          |1.20428e-07 / 8.0755e-07 | 1.48498e-06 / 1.67449e-06 | 3.2437e-06 / 3.42692e-06 | 7.85896e-06 / 8.43429e-06 | 8.01e-07 | 2.953e-6 |
