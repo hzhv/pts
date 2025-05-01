@@ -1,13 +1,4 @@
 
-**[offshore.mat](https://sparse.tamu.edu/Um/offshore)** 
-| Rows    | Cols    | Nonzeros  | Nonzeros per Row | Density      |
-|---------|---------|-----------| -----------------|--------------|
-| 259,789 | 259,789 | 4,242,673 | 16 average       | 0.0159515%   |
-- **Symmetric**:	Yes 
-- **Levels in total**: 13,486  
-- Each level contains **19.26 rows on average**.
-- ![Offshore Matrix Visualization](./images/offshore_L_csr200.png) 
-
 
 **04/30/2025**    
 **Use different Synthtic Matrix from 5-point stencil FDM**   
@@ -56,6 +47,16 @@
 |-----------|------------|-----------|-----------|-------------|-------------|
 | 100 times |0.000155298 |0.000177485|0.00022731 | 0.000249848 | 0.0000800272|
 <!-- | 100 times |0.00010114  |0.000455158|0.000421344| 0.000611659 | 0.0000800272| -->
+
+
+**[offshore.mat](https://sparse.tamu.edu/Um/offshore)** 
+| Rows    | Cols    | Nonzeros  | Nonzeros per Row | Density      |
+|---------|---------|-----------| -----------------|--------------|
+| 259,789 | 259,789 | 4,242,673 | 16 average       | 0.0159515%   |
+- **Symmetric**:	Yes 
+- **Levels in total**: 13,486  
+- Each level contains **19.26 rows on average**.
+- ![Offshore Matrix Visualization](./images/offshore_L_csr200.png) 
 
 **04/24/2025**
 **Block Partition used** 
