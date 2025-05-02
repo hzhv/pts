@@ -1,8 +1,19 @@
+##  04/30/2025  Test different Synthtic Matrix from 5-point stencil FDM  
+We solve each matrix of size
+n = {100, 196, 400, 784, 1600, 3249, 6400, 12769, 25600, 51076, 102400, 205209, 409600, 819025, 1638400}
+1000 times to obtain reliable performance measurements.
+The plots below show:
+- Total solving time (i.e., computation + communication) vs. matrix size, along with the proportion of communication time:  
+ [View the full image](./images/comm_fraction_analysis.pdf)
+![Total](./images/solve_comm.jpg)  
 
+- The following plot represent the result that solving the matrix without collecting communication time cost:  
+[View the full image](./images/performance_loglog_plot.pdf)
+![Comm](./images/solve_comm.jpg)
 
-**04/30/2025**    
-**Use different Synthtic Matrix from 5-point stencil FDM**   
-**Communication Time / Solving time, each of the following exp runs 1000 times**   
+---
+The following tables present detailed results.   
+Each entry is formatted as: Communication Time / Solving Time
 | Matrix size  | -np 1       | -np 2     | -np 4     |  -np 8      | Serial      | Matlab      |
 |--------------|-------------|-----------|-----------|-------------|-------------|-------------|
 | 100          |1.20428e-07 / 8.0755e-07 | 1.48498e-06 / 1.67449e-06 | 3.2437e-06 / 3.42692e-06 | 7.85896e-06 / 8.43429e-06 | 8.01e-07 | 2.953e-6 |
@@ -21,8 +32,8 @@
 | 819,025      | 0.000241366 / 0.00384201 | 0.000409607 / 0.00357666 | 0.000910166 / 0.00672928 | 0.00161314 / 0.0117813 | 0.00177419 |4.489057e-3|
 | 1,638,400    | 0.000685039 / 0.00883354 | 0.00120741 / 0.00918623 | 0.00240251 / 0.0171404 | 0.00440842 / 0.0404561 | 0.00383624 |9.648871e-3|
 
-
-**Solving time w/o Communication Time**     
+---
+**Solving time w/o collecting communication time:**     
 | Matrix size  | -np 1      | -np 2      | -np 4      |  -np 8      | Serial      | Matlab      |
 |--------------|------------|------------|------------|-------------|-------------|-------------|
 | 100          |4.75214e-07 |1.40494e-06 |5.18376e-06 | 8.26106e-06 | 4.07e-07    |2.953e-6     |
@@ -41,8 +52,8 @@
 | 819,025      |0.00375482  |0.00358436  | 0.00671502 | 0.00669452  |0.00182312   |4.489057e-3  |
 | 1,638,400    |0.00849241  |0.00915114  | 0.0171226  | 0.0407249   |0.00385348   |9.648871e-3  |
 
-**04/26/2025** 
-**Used a synthetic 2 level sparse matrix which n = 25600, density = 0.011669%**    
+---
+## 04/26/2025 Used a synthetic 2 level sparse matrix which n = 25600, density = 0.011669% 
 |Exp        | -np 1      | -np 2     | -np 4     |  -np 8      | Serial      |
 |-----------|------------|-----------|-----------|-------------|-------------|
 | 100 times |0.000155298 |0.000177485|0.00022731 | 0.000249848 | 0.0000800272|
