@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
         std::cout << std::endl;
     }
 
-    std::vector<int> row_owner = buildRowOwner_mod(A_csr.n, numProcs);
+    std::vector<int> row_owner = buildRowOwner_block(A_csr.n, numProcs);
     // ====================== "Fastest" Test start ======================
 
     std::vector<int> level_ptr, level_rows,
@@ -95,6 +95,7 @@ int main(int argc, char* argv[])
     );
 
     double comm_time = 0.0;
+    MPI_Barrier(MPI_COMM_WORLD);
     double start_parallel = MPI_Wtime();
     try 
     {   
@@ -149,12 +150,22 @@ int main(int argc, char* argv[])
     }
     double end_parallel = MPI_Wtime();
     
-    if (rank == 0) 
-    {
-        // std::cout << "Total communication time: " 
-        //           << comm_time/1000.0 << " sec" << "\n";
-        std::cout << "Parallel solve time: " 
-            << (end_parallel - start_parallel) / 1000.0 << " sec" << "\n";
+    // Reduce communication time
+    double comm_time_max = 0.0, comm_time_sum = 0.0;
+    MPI_Reduce(&comm_time, &comm_time_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&comm_time, &comm_time_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    // Reduce total time
+    double total_time = end_parallel - start_parallel;
+    double total_time_max = 0.0, total_time_sum = 0.0;
+    MPI_Reduce(&total_time, &total_time_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&total_time, &total_time_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    if (rank == 0) {
+        printf("Max comm_time across all ranks: %f s\n", comm_time_max);
+        printf("Avg comm_time across all ranks: %f s\n", comm_time_sum / numProcs);
+        printf("Max total_time across all ranks: %f s\n", total_time_max);
+        printf("Avg total_time across all ranks: %f s\n", total_time_sum / numProcs);
 
         std::ofstream outfile("Parallel_solution.txt");
         if (!outfile) {
